@@ -43,7 +43,8 @@ const sendMessage = async () => {
     // 🔑 Use correct key from n8n
     setMessages((prev) => [
       ...prev,
-      { role: "bot", text: data.response || "No response from AI" }
+      { role: "bot", text: data.article || "No response from AI" }
+
     ]);
   } catch (error) {
     setMessages((prev) => [
