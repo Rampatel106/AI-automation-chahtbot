@@ -1,132 +1,97 @@
-const sendMessage = async () => {
-  if (!input.trim()) return;
+import { useState } from "react";
 
-  // user message
-  setMessages((prev) => [...prev, { role: "user", text: input }]);
+function Chat() {
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  try {
-    const res = await fetch(
-      "https://ramkumar01234.app.n8n.cloud/webhook/ai-article-webhook",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: input,
-          sessionId: sessionIdRef.current,
-        }),
-      }
-    );
+  const sendMessage = async () => {
+    if (!message.trim()) return;
 
-    const rawText = await res.text(); // IMPORTANT
-    const data = rawText ? JSON.parse(rawText) : {};
+    const userMsg = { from: "user", text: message };
+    setMessages((prev) => [...prev, userMsg]);
+    setMessage("");
+    setLoading(true);
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "ai",
-        text: data.article || "AI ka response mila, par empty tha",
-      },
-    ]);
-  } catch (err) {
-    console.error("Frontend error:", err);
-    setMessages((prev) => [
-      ...prev,
-      { role: "ai", text: "Backend se response nahi aa pa raha" },
-    ]);
-  }
+    try {
+      const res = await fetch(
+        "https://ramkumar01234.app.n8n.cloud/webhook/ai-article-webhook",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ message }),
+        }
+      );
 
-  setInput("");
-};
+      const data = await res.json();
+
+      const botMsg = {
+        from: "bot",
+        text: data.output || "No response from AI",
+      };
+
+      setMessages((prev) => [...prev, botMsg]);
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        { from: "bot", text: "Server error, thodi der baad try karo" },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#f4f6f8",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        fontFamily: "Arial, sans-serif",
-      }}
-    >
+    <div style={{ maxWidth: 500, margin: "40px auto", fontFamily: "Arial" }}>
+      <h2>AI Chatbot</h2>
+
       <div
         style={{
-          width: "100%",
-          maxWidth: "500px",
-          backgroundColor: "#ffffff",
-          borderRadius: "10px",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-          padding: "15px",
+          border: "1px solid #ccc",
+          padding: 10,
+          height: 300,
+          overflowY: "auto",
+          marginBottom: 10,
+          background: "#f9f9f9",
         }}
       >
-        <h2 style={{ textAlign: "center", color: "#333" }}>
-          🤖 AI Chatbot
-        </h2>
-
-        <div
-          style={{
-            height: "300px",
-            overflowY: "auto",
-            border: "1px solid #ddd",
-            borderRadius: "6px",
-            padding: "10px",
-            backgroundColor: "#fafafa",
-            marginBottom: "10px",
-          }}
-        >
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              style={{
-                textAlign: msg.role === "user" ? "right" : "left",
-                marginBottom: "8px",
-              }}
-            >
-              <span
-                style={{
-                  display: "inline-block",
-                  padding: "8px 12px",
-                  borderRadius: "8px",
-                  maxWidth: "80%",
-                  backgroundColor:
-                    msg.role === "user" ? "#dbeafe" : "#e5e7eb",
-                  color: "#111",
-                }}
-              >
-                {msg.text}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ display: "flex", gap: "6px" }}>
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
+        {messages.map((m, i) => (
+          <div
+            key={i}
             style={{
-              flex: 1,
-              padding: "10px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-              color: "#000",
-              backgroundColor: "#fff",
-            }}
-          />
-          <button
-            onClick={sendMessage}
-            style={{
-              padding: "10px 16px",
-              borderRadius: "6px",
-              border: "none",
-              backgroundColor: "#2563eb",
-              color: "#fff",
-              cursor: "pointer",
+              textAlign: m.from === "user" ? "right" : "left",
+              margin: "6px 0",
             }}
           >
-            Send
-          </button>
-        </div>
+            <span
+              style={{
+                display: "inline-block",
+                padding: "6px 10px",
+                borderRadius: 6,
+                background: m.from === "user" ? "#DCF8C6" : "#ffffff",
+                color: "#000",
+              }}
+            >
+              {m.text}
+            </span>
+          </div>
+        ))}
+        {loading && <div>Typing...</div>}
       </div>
+
+      <input
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="Type message..."
+        style={{ width: "80%", padding: 6 }}
+      />
+      <button onClick={sendMessage} style={{ padding: 6 }}>
+        Send
+      </button>
     </div>
   );
 }
+
+export default Chat;
