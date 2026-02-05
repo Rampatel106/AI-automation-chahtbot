@@ -1,47 +1,42 @@
-import { useState, useRef } from "react";
+const sendMessage = async () => {
+  if (!input.trim()) return;
 
-export default function Chat() {
-  const [input, setInput] = useState("");
-  const [messages, setMessages] = useState([]);
-  const sessionIdRef = useRef(Date.now().toString());
+  // user message
+  setMessages((prev) => [...prev, { role: "user", text: input }]);
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
+  try {
+    const res = await fetch(
+      "https://ramkumar01234.app.n8n.cloud/webhook/ai-article-webhook",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: input,
+          sessionId: sessionIdRef.current,
+        }),
+      }
+    );
 
-    setMessages((prev) => [...prev, { role: "user", text: input }]);
+    const rawText = await res.text(); // IMPORTANT
+    const data = rawText ? JSON.parse(rawText) : {};
 
-    try {
-      const res = await fetch(
-        "https://ramkumar01234.app.n8n.cloud/webhook/ai-article-webhook",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: input,
-            sessionId: sessionIdRef.current,
-          }),
-        }
-      );
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "ai",
+        text: data.article || "AI ka response mila, par empty tha",
+      },
+    ]);
+  } catch (err) {
+    console.error("Frontend error:", err);
+    setMessages((prev) => [
+      ...prev,
+      { role: "ai", text: "Backend se response nahi aa pa raha" },
+    ]);
+  }
 
-      const data = await res.json();
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "ai",
-          text: data.article || "AI se response nahi mila",
-        },
-      ]);
-    } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "ai", text: "Server error, thodi der baad try karo" },
-      ]);
-    }
-
-    setInput("");
-  };
-
+  setInput("");
+};
   return (
     <div
       style={{
